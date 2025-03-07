@@ -8,7 +8,7 @@ export class GUIController {
 	constructor(parent: GooeyText) {
 		this.parent = parent;
 
-		// ✅ Ensure only one GUI instance exists
+		// Ensure only one GUI instance exists
 		if (GUIController.gui) {
 			GUIController.gui.destroy();
 		}
@@ -49,7 +49,7 @@ export class GUIController {
 			.onChange(() => this.forceUpdate());
 	}
 
-	// ✅ Forces an update in `GooeyText.ts`
+	// Forces an update in `GooeyText.ts`
 	private forceUpdate() {
 		this.parent.requestUpdate();
 	}

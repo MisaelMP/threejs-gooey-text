@@ -1,6 +1,5 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, property } from 'lit/decorators.js';
-import * as THREE from 'three';
 import { SceneManager } from './components/SceneManager';
 import { AnimationController } from './components/AnimationController';
 import { GUIController } from './components/GUIController';
@@ -22,7 +21,7 @@ export class GooeyText extends LitElement {
 	`;
 
 	@property({ type: String }) text = 'Gooey';
-	@property({ type: Boolean }) isAnimating = true; // ✅ Fixed: Used correctly
+	@property({ type: Boolean }) isAnimating = true; // Fixed: Used correctly
 	@property({ type: Number }) gooeyness = 0.1;
 	@property({ type: Number }) bounceSpeed = 0.1;
 	@property({ type: String }) blobColor = '#ff69b4';
@@ -32,7 +31,7 @@ export class GooeyText extends LitElement {
 	private sceneManager!: SceneManager;
 	private animationController!: AnimationController;
 	private guiController!: GUIController | null = null;
-	private animationFrameId!: number; // ✅ Fix: Ensure animation loop is controlled
+	private animationFrameId!: number; // Fix: Ensure animation loop is controlled
 
 	firstUpdated() {
 		this.sceneManager = new SceneManager(this);
@@ -40,7 +39,7 @@ export class GooeyText extends LitElement {
 
 		this.animationController = new AnimationController(this.sceneManager);
 
-		// ✅ Prevent multiple GUI initializations
+		// Prevent multiple GUI initializations
 		if (!this.guiController) {
 			this.guiController = new GUIController(this);
 		}
@@ -56,7 +55,7 @@ export class GooeyText extends LitElement {
 
 	startAnimation() {
 		const animate = () => {
-			this.animationFrameId = requestAnimationFrame(animate); // ✅ Store frame ID
+			this.animationFrameId = requestAnimationFrame(animate); // Store frame ID
 			if (this.isAnimating) {
 				this.animationController.animateScene(
 					this.isAnimating,
@@ -72,17 +71,17 @@ export class GooeyText extends LitElement {
 	}
 
 	updated(changedProperties: Map<string, any>) {
-		// ✅ If animation state changes, restart animation
+		// If animation state changes, restart animation
 		if (changedProperties.has('isAnimating')) {
 			if (this.isAnimating) {
 				this.startAnimation();
 			} else {
-				cancelAnimationFrame(this.animationFrameId); // ✅ Stop animation if toggled off
+				cancelAnimationFrame(this.animationFrameId); // Stop animation if toggled off
 			}
 		}
 
 		if (changedProperties.has('text') || changedProperties.has('gooeyness')) {
-			this.sceneManager.createTextBlobs(); // ✅ Ensures previous text is removed
+			this.sceneManager.createTextBlobs(); // Ensures previous text is removed
 		}
 		if (changedProperties.has('blobColor')) {
 			this.sceneManager.updateBlobColor(this.blobColor);

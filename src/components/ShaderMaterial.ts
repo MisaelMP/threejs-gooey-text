@@ -7,8 +7,8 @@ export class ShaderMaterialFactory {
 				u_time: { value: 0.0 },
 				u_amplitude: { value: 1.0 },
 				u_color: { value: new THREE.Color(color) },
-				u_bounceEffect: { value: 0.0 }, // ✅ Added: Bounciness uniform
-				u_gooeyEffect: { value: 0.0 }, // ✅ Added: Gooeyness uniform
+				u_bounceEffect: { value: 0.0 }, // Added: Bounciness uniform
+				u_gooeyEffect: { value: 0.0 }, // Added: Gooeyness uniform
 			},
 			vertexShader: `
 	uniform float u_time;
@@ -19,7 +19,7 @@ export class ShaderMaterialFactory {
 		vNormal = normalize(normalMatrix * normal);
 		vec3 pos = position;
 
-		// ✅ Improved noise function for smoother gooey effect
+		// Improved noise function for smoother gooey effect
 		float noise = sin(u_time * 2.0 + position.y * 0.2) * 0.2;
 		pos.x += noise * u_gooeyEffect;
 		pos.y += noise * u_gooeyEffect * 1.2;

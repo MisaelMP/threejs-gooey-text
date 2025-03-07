@@ -15,8 +15,8 @@ export class SceneManager {
 	private textBlobs: THREE.Mesh[] = [];
 	private pointLight!: THREE.PointLight;
 	private floor!: THREE.Mesh;
-	private textOffsetY = 3; // ✅ Text starts suspended correctly
-	private floorLevel!: number; // ✅ Stores **precise** floor position
+	private textOffsetY = 3; // Text starts suspended correctly
+	private floorLevel!: number; // Stores **precise** floor position
 
 	constructor(parent: GooeyText) {
 		this.parent = parent;
@@ -85,7 +85,7 @@ export class SceneManager {
 		this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
 		this.floor.rotation.x = -Math.PI / 2;
 
-		// ✅ **Correctly position the floor at the very bottom of the screen**
+		//**Correctly position the floor at the very bottom of the screen**
 		this.floorLevel = -10; // 🔥 Make sure it's always BELOW the text
 		this.floor.position.y = this.floorLevel;
 
@@ -111,7 +111,6 @@ export class SceneManager {
 		if (this.pointLight) {
 			this.pointLight.intensity = intensity;
 
-			// ✅ Keep light **above** for better shadows
 			this.pointLight.position.set(0, 25 + intensity * 2, 5);
 		}
 	}
@@ -130,7 +129,6 @@ export class SceneManager {
 	}
 
 	createTextBlobs() {
-		// ✅ **Ensure previous text is removed**
 		this.textBlobs.forEach((blob) => {
 			this.scene.remove(blob);
 			if (blob.geometry) blob.geometry.dispose();
@@ -158,7 +156,7 @@ export class SceneManager {
 				this.textBlobs = TextBlob.createText(font, this.parent);
 				this.textBlobs.forEach((blob, i) => {
 					blob.position.x += offset + i * 3.2;
-					blob.position.y = this.floorLevel + 40; // ✅ **Fix: Suspension Above Floor**
+					blob.position.y = this.floorLevel + 40; 
 					blob.castShadow = true;
 					this.scene.add(blob);
 				});
@@ -187,7 +185,7 @@ export class SceneManager {
 		return this.renderer;
 	}
 
-	// ✅ **New Function: Get Floor Level for Bouncing**
+
 	getFloorLevel() {
 		return this.floorLevel;
 	}
