@@ -6,6 +6,12 @@ export class GUIController {
 	private parent: GooeyText;
 
 	constructor(parent: GooeyText) {
+		if (!(parent instanceof GooeyText)) {
+			throw new Error(
+				'GUIController expected a GooeyText instance but received something else.'
+			);
+		}
+
 		this.parent = parent;
 
 		// Ensure only one GUI instance exists
@@ -22,34 +28,45 @@ export class GUIController {
 			.name('Animate')
 			.onChange(() => this.forceUpdate());
 
-	GUIController.gui!.add(this.parent, 'bounceSpeed', 0, 5, 0.1)
-		.name('Bounce Speed')
-		.onChange((value) => {
-			this.parent.setBounciness(value); // Keep applying gravity even after dragging
-		});
+		// ✅ Update bounce effect dynamically
+		GUIController.gui!.add(this.parent, 'bounceSpeed', 0, 5, 0.1)
+			.name('Bounce Speed')
+			.onChange((value) => {
+				this.parent.setBounciness(value);
+			});
 
+		// ✅ Update gooeyness dynamically
 		GUIController.gui!.add(this.parent, 'gooeyness', 0, 1, 0.05)
 			.name('Gooeyness')
-			.onChange(() => this.forceUpdate());
+			.onChange(() => {
+				this.parent.updateGooeyness();
+			});
 
 		GUIController.gui!.addColor(this.parent, 'blobColor')
 			.name('Blob Color')
-			.onChange(() => this.forceUpdate());
+			.onChange((color) => {
+				this.parent.updateBlobColor(color);
+			});
 
 		GUIController.gui!.addColor(this.parent, 'backgroundColor')
 			.name('Background')
-			.onChange(() => this.forceUpdate());
+			.onChange((color) => {
+				this.parent.updateBackgroundColor(color);
+			});
 
 		GUIController.gui!.add(this.parent, 'text')
 			.name('Text')
-			.onChange(() => this.forceUpdate());
+			.onChange(() => {
+				this.parent.recreateTextBlobs();
+			});
 
 		GUIController.gui!.add(this.parent, 'lightIntensity', 0, 5, 0.1)
 			.name('Light Intensity')
-			.onChange(() => this.forceUpdate());
+			.onChange((intensity) => {
+				this.parent.updateLightIntensity(intensity);
+			});
 	}
 
-	// Forces an update in `GooeyText.ts`
 	private forceUpdate() {
 		this.parent.requestUpdate();
 	}

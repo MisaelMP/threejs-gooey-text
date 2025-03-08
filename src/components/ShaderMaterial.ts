@@ -11,22 +11,22 @@ export class ShaderMaterialFactory {
 				u_gooeyEffect: { value: 0.0 }, // Added: Gooeyness uniform
 			},
 			vertexShader: `
-	uniform float u_time;
-	uniform float u_gooeyEffect;
-	varying vec3 vNormal;
+        uniform float u_time;
+        uniform float u_gooeyEffect;
+        varying vec3 vNormal;
 
-	void main() {
-		vNormal = normalize(normalMatrix * normal);
-		vec3 pos = position;
+        void main() {
+          vNormal = normalize(normalMatrix * normal);
+          vec3 pos = position;
 
-		// Improved noise function for smoother gooey effect
-		float noise = sin(u_time * 2.0 + position.y * 0.2) * 0.2;
-		pos.x += noise * u_gooeyEffect;
-		pos.y += noise * u_gooeyEffect * 1.2;
-		pos.z += noise * u_gooeyEffect * 0.8;
+          // Improved noise function for smoother gooey effect
+          float wobble = sin(u_time * 5.0 + position.y * 0.2) * 0.2 * u_gooeyEffect;
+          pos.x += wobble;
+          pos.y += wobble * 1.2;
+          pos.z += wobble * 0.8;
 
-		gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-	}
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
 `,
 
 			fragmentShader: `

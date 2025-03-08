@@ -1,22 +1,24 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
 import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import { DragControls } from 'three/examples/jsm/controls/DragControls.js';
 import { TextBlob } from './TextBlob';
 import { GooeyText } from '../GooeyText';
 import { GUIController } from './GUIController';
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 export class SceneManager {
-	private parent: GooeyText;
+	public parent: GooeyText;
 	private scene: THREE.Scene;
 	private camera: THREE.PerspectiveCamera;
 	private renderer: THREE.WebGLRenderer;
 	private controls!: OrbitControls;
-	private textBlobs: THREE.Mesh[] = [];
+	private textBlobs: { mesh: THREE.Mesh; body: CANNON.Body }[] = [];
 	private pointLight!: THREE.PointLight;
 	private floor!: THREE.Mesh;
-	private dragControls!: DragControls;
-	private floorLevel!: number; // Stores **precise** floor position
+	private floorBody!: CANNON.Body;
+	private world!: CANNON.World;
+	private floorLevel = -10;
 
 	constructor(parent: GooeyText) {
 		this.parent = parent;
@@ -30,12 +32,27 @@ export class SceneManager {
 			1000
 		);
 		this.camera.position.z = 20;
-		this.camera.position.set(0, 10, 30); // Moves the camera farther away
 
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+		// ✅ Initialize physics
+		this.initPhysics();
+	}
+
+	private initPhysics() {
+		this.world = new CANNON.World();
+		this.world.gravity.set(0, -9.8, 0);
+
+		this.floorBody = new CANNON.Body({
+			mass: 0,
+			shape: new CANNON.Plane(),
+		});
+		this.floorBody.position.set(0, this.floorLevel, 0);
+		this.floorBody.quaternion.setFromEuler(-Math.PI / 2, 0, 0);
+		this.world.addBody(this.floorBody);
 	}
 
 	initScene() {
@@ -53,145 +70,143 @@ export class SceneManager {
 		this.addLighting();
 		this.addFloor();
 		this.createTextBlobs();
-		this.initDragControls();
 
 		new GUIController(this.parent);
 	}
 
-	initDragControls() {
-		if (!this.renderer || !this.textBlobs.length) {
-			console.error(
-				'DragControls initialization failed: Renderer or textBlobs missing.'
-			);
-			return;
-		}
+	addLighting() {
+		const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+		this.scene.add(ambientLight);
 
-		this.dragControls = new DragControls(
-			this.textBlobs,
-			this.camera,
-			this.renderer.domElement
-		);
+		// ✅ **Directional light for strong shadows under each letter**
+		const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
+		directionalLight.position.set(0, 50, 10);
+		directionalLight.castShadow = true;
+		directionalLight.shadow.mapSize.width = 4096;
+		directionalLight.shadow.mapSize.height = 4096;
+		directionalLight.shadow.camera.near = 1;
+		directionalLight.shadow.camera.far = 200;
+		directionalLight.shadow.camera.left = -50;
+		directionalLight.shadow.camera.right = 50;
+		directionalLight.shadow.camera.top = 50;
+		directionalLight.shadow.camera.bottom = -50;
+		this.scene.add(directionalLight);
 
-		this.dragControls.addEventListener('dragstart', () => {
-			if (this.controls) this.controls.enabled = false;
-		});
-
-		this.dragControls.addEventListener('dragend', () => {
-			if (this.controls) this.controls.enabled = true;
-		});
+		// ✅ **Each letter now casts its own shadow**
+		this.pointLight = new THREE.PointLight(0xffffff, 2);
+		this.pointLight.position.set(0, 30, 10);
+		this.pointLight.castShadow = true;
+		this.pointLight.shadow.mapSize.width = 4096;
+		this.pointLight.shadow.mapSize.height = 4096;
+		this.scene.add(this.pointLight);
 	}
 
 	addFloor() {
 		const floorGeometry = new THREE.PlaneGeometry(100, 100);
 		const floorMaterial = new THREE.MeshStandardMaterial({
-			transparent: true, // Enable transparency
-			opacity: 0,
+			color: 0x222222,
+			roughness: 0.8,
+			metalness: 0.1,
 		});
 
 		this.floor = new THREE.Mesh(floorGeometry, floorMaterial);
 		this.floor.rotation.x = -Math.PI / 2;
-
-		//**Correctly position the floor at the very bottom of the screen**
-		this.floorLevel = -10; // 🔥 Make sure it's always BELOW the text
 		this.floor.position.y = this.floorLevel;
-
 		this.floor.receiveShadow = true;
 		this.scene.add(this.floor);
 	}
 
+	createTextBlobs() {
+		const loader = new FontLoader();
+		loader.load(
+			'https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
+			(font) => {
+				this.textBlobs.forEach(({ mesh }) => this.scene.remove(mesh));
+				this.textBlobs = [];
+
+				const textBlobs = TextBlob.createText(font, this.parent);
+
+				textBlobs.forEach(({ mesh, body }) => {
+					this.world.addBody(body);
+					this.textBlobs.push({ mesh, body });
+					this.scene.add(mesh);
+				});
+			}
+		);
+	}
+
 	updateBlobColor(color: string) {
-		this.textBlobs.forEach((blob) => {
-			if (blob.material instanceof THREE.MeshStandardMaterial) {
-				blob.material.color.set(color);
+		this.textBlobs.forEach(({ mesh }) => {
+			if (mesh.material instanceof THREE.MeshStandardMaterial) {
+				mesh.material.color.set(color);
 			}
 		});
 	}
 
 	updateBackgroundColor(color: string) {
-		if (this.scene) {
-			this.scene.background = new THREE.Color(color);
-		}
+		this.scene.background = new THREE.Color(color);
 	}
 
 	updateLightIntensity(intensity: number) {
-		if (this.pointLight) {
-			this.pointLight.intensity = intensity;
-
-			this.pointLight.position.set(0, 25 + intensity * 2, 5);
-		}
+		this.pointLight.intensity = intensity;
 	}
 
-	addLighting() {
-		const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
-		this.scene.add(ambientLight);
-
-		this.pointLight = new THREE.PointLight(
-			0xffffff,
-			this.parent.lightIntensity
-		);
-		this.pointLight.position.set(0, 20, 10);
-		this.pointLight.castShadow = true;
-		this.scene.add(this.pointLight);
-	}
-
-	createTextBlobs() {
-		this.textBlobs.forEach((blob) => {
-			this.scene.remove(blob);
-			if (blob.geometry) blob.geometry.dispose();
-			if (blob.material) (blob.material as THREE.Material).dispose();
-		});
-		this.textBlobs = [];
-
-		const loader = new FontLoader();
-		loader.load(
-			'https://threejs.org/examples/fonts/helvetiker_bold.typeface.json',
-			(font) => {
-				const totalWidth = this.textBlobs.reduce(
-					(acc, blob) => acc + (blob.geometry.boundingBox?.max.x || 0),
-					0
-				);
-				const offset = -totalWidth / 2;
-
-				this.textBlobs.forEach((blob) => {
-					this.scene.remove(blob);
-					if (blob.geometry) blob.geometry.dispose();
-					if (blob.material) (blob.material as THREE.Material).dispose();
-				});
-				this.textBlobs = [];
-
-				this.textBlobs = TextBlob.createText(font, this.parent);
-				this.textBlobs.forEach((blob, i) => {
-					blob.position.x += offset + i * 3.2;
-					blob.position.y = this.floorLevel + 40;
-					blob.castShadow = true;
-					this.scene.add(blob);
-				});
+	updateGooeyness(value: number) {
+		this.textBlobs.forEach(({ mesh }) => {
+			if (mesh.material instanceof THREE.ShaderMaterial) {
+				mesh.material.uniforms.u_gooeyEffect.value = value; // ✅ Update gooeyness effect in shader
 			}
-		);
+		});
 	}
 
 	startAnimation() {
 		const animate = () => {
 			requestAnimationFrame(animate);
-			this.parent.requestUpdate();
+			this.updatePhysics();
 			this.renderer.render(this.scene, this.camera);
 		};
 		animate();
 	}
 
-	getScene() {
-		return this.scene;
+	private updatePhysics() {
+		this.world.step(1 / 60);
+
+		this.textBlobs.forEach(({ mesh, body }) => {
+			if (mesh instanceof THREE.Mesh && body instanceof CANNON.Body) {
+				mesh.position.set(body.position.x, body.position.y, body.position.z);
+			}
+		});
 	}
 
-	getCamera() {
-		return this.camera;
+	// ✅ Now includes all missing functions
+	getGooeyness() {
+		return this.parent.gooeyness; // ✅ Get gooeyness from GUI
+	}
+
+	getBounciness() {
+		return this.parent.bounceSpeed; // ✅ Get bounciness from GUI
+	}
+	getFloorLevel() {
+		return this.floorLevel; // ✅ Returns the floor level for physics
+	}
+
+	getPhysicsWorld() {
+		return this.world;
+	}
+
+	getTextBlobs() {
+		return this.textBlobs;
 	}
 
 	getRenderer() {
 		return this.renderer;
 	}
 
-	getFloorLevel() {
-		return this.floorLevel;
+	getCamera() {
+		return this.camera;
+	}
+
+	getScene() {
+		return this.scene;
 	}
 }

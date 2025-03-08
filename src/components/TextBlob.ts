@@ -1,11 +1,18 @@
 import * as THREE from 'three';
+import * as CANNON from 'cannon-es';
+import { ShaderMaterialFactory } from './ShaderMaterial';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { GooeyText } from '../GooeyText';
-import { Font  } from 'three/examples/jsm/loaders/FontLoader.js';
+import { Font } from 'three/examples/jsm/loaders/FontLoader.js';
 
 export class TextBlob {
-	static createText(font: Font, parent: GooeyText): THREE.Mesh[] {
-		//  Load an environment map for realistic chrome reflections
+	static createText(
+		font: Font,
+		parent: GooeyText
+	): { mesh: THREE.Mesh; body: CANNON.Body }[] {
+		const text = parent.text || 'Gooey';
+		const textBlobs: { mesh: THREE.Mesh; body: CANNON.Body }[] = [];
+
 		const envMapLoader = new THREE.CubeTextureLoader();
 		const envMap = envMapLoader.load([
 			'https://threejs.org/examples/textures/cube/pisa/px.png',
@@ -16,71 +23,62 @@ export class TextBlob {
 			'https://threejs.org/examples/textures/cube/pisa/nz.png',
 		]);
 
-		// Apply an improved liquid metallic material
 		const material = new THREE.MeshPhysicalMaterial({
 			color: new THREE.Color(parent.blobColor),
 			metalness: 1.0,
 			roughness: 0.02,
-			transmission: 0.9, // Slight transparency
+			transmission: 0.9,
 			clearcoat: 1.0,
 			clearcoatRoughness: 0.02,
 			reflectivity: 1.0,
 			envMap: envMap,
-			envMapIntensity: 2.5, // Boosted reflections
+			envMapIntensity: 3.5, // ✅ Stronger reflections
 		});
 
-		const textArray = parent.text.split('');
-		const baseSize = 3;
-		const sizeMultiplier = 1 + parent.gooeyness * 0.5;
-		const adjustedSize = baseSize * sizeMultiplier;
-		const textBlobs: THREE.Mesh[] = [];
+		const wordGeometry = new TextGeometry(text, {
+			font: font,
+			size: 3,
+			depth: 2,
+			bevelEnabled: true,
+			bevelThickness: 0.5,
+			bevelSize: 0.3,
+			bevelSegments: 10,
+			curveSegments: 24,
+		});
+		wordGeometry.computeBoundingBox();
+		const wordMesh = new THREE.Mesh(wordGeometry, material);
+		wordMesh.castShadow = true;
 
-		// Compute total width dynamically
-		let totalWidth = 0;
-		const letterMeshes: { mesh: THREE.Mesh; width: number }[] = [];
+		// ✅ Center text properly
+		const textWidth = wordGeometry.boundingBox?.max.x ?? 0;
+		wordMesh.position.set(-textWidth / 2, 10, 0);
 
-		// Create letters and compute their width for proper spacing
-		textArray.forEach((char) => {
-			const letterGeometry = new TextGeometry(char, {
-				font: font,
-				size: adjustedSize,
-				depth: 1.5 + parent.gooeyness * 1.5,
-				bevelEnabled: true,
-				bevelThickness: 0.3 + parent.gooeyness * 0.8,
-				bevelSize: 0.2 + parent.gooeyness * 0.4,
-				bevelSegments: 10,
-				curveSegments: 24,
-			});
+		// ✅ Correct reference to `sceneManager`
+		const floorLevel = parent.sceneManager.getFloorLevel(); // 🔥 Corrected!
 
-			// Compute bounding box width for precise spacing
-			letterGeometry.computeBoundingBox();
-			const width =
-				(letterGeometry.boundingBox?.max.x || 0) -
-				(letterGeometry.boundingBox?.min.x || 0);
+		// ✅ Place above the floor INITIALLY but allow physics to move it after
+		const body = new CANNON.Body({
+			mass: 1,
+			shape: new CANNON.Box(new CANNON.Vec3(textWidth / 2, 1.5, 1)),
 
-			const letterBlob = new THREE.Mesh(letterGeometry, material);
-			letterBlob.castShadow = true;
+			// ✅ **Set initial position but allow gravity to take over**
+			position: new CANNON.Vec3(
+				wordMesh.position.x,
+				floorLevel + 5, // ✅ Start slightly above the floor
+				0
+			),
 
-			letterMeshes.push({ mesh: letterBlob, width });
-			totalWidth += width;
+			material: new CANNON.Material({ restitution: parent.bounceSpeed }),
 		});
 
-		// Adjust spacing dynamically for a **balanced look**
-		const spacingFactor = 0.85; // 🔥 Slightly more space than before
-		let currentX = -totalWidth / 2;
+		// 🔥 **Fix: Ensure gravity works properly**
+		body.velocity.set(0, -5, 0); // ✅ Starts falling
+		setTimeout(() => (body.allowSleep = true), 1000); // ✅ Prevents it from staying in the air
 
-		// Apply proper spacing
-		letterMeshes.forEach(({ mesh, width }, i) => {
-			mesh.position.x = currentX;
-			currentX += width * spacingFactor; // 🔥 Keeps letters evenly spaced
-			textBlobs.push(mesh);
-		});
+		body.linearDamping = 0.3;
+		body.angularDamping = 0.3;
 
-		//  Apply bounce and squish effect
-		textBlobs.forEach((blob) => {
-			blob.userData.bounceSpeed = parent.bounceSpeed * 2; // 🔥 Increased bounce strength
-			blob.userData.squishEffect = parent.gooeyness * 0.5; // 🔥 More noticeable squish
-		});
+		textBlobs.push({ mesh: wordMesh, body });
 
 		return textBlobs;
 	}
