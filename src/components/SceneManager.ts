@@ -15,7 +15,7 @@ export class SceneManager {
 	private textBlobs: THREE.Mesh[] = [];
 	private pointLight!: THREE.PointLight;
 	private floor!: THREE.Mesh;
-	private textOffsetY = 3; // Text starts suspended correctly
+	private dragControls!: DragControls;
 	private floorLevel!: number; // Stores **precise** floor position
 
 	constructor(parent: GooeyText) {
@@ -59,19 +59,25 @@ export class SceneManager {
 	}
 
 	initDragControls() {
+		if (!this.renderer || !this.textBlobs.length) {
+			console.error(
+				'DragControls initialization failed: Renderer or textBlobs missing.'
+			);
+			return;
+		}
+
 		this.dragControls = new DragControls(
 			this.textBlobs,
 			this.camera,
 			this.renderer.domElement
 		);
 
-		// Disable OrbitControls while dragging
 		this.dragControls.addEventListener('dragstart', () => {
-			this.controls.enabled = false;
+			if (this.controls) this.controls.enabled = false;
 		});
 
 		this.dragControls.addEventListener('dragend', () => {
-			this.controls.enabled = true;
+			if (this.controls) this.controls.enabled = true;
 		});
 	}
 
@@ -156,7 +162,7 @@ export class SceneManager {
 				this.textBlobs = TextBlob.createText(font, this.parent);
 				this.textBlobs.forEach((blob, i) => {
 					blob.position.x += offset + i * 3.2;
-					blob.position.y = this.floorLevel + 40; 
+					blob.position.y = this.floorLevel + 40;
 					blob.castShadow = true;
 					this.scene.add(blob);
 				});
@@ -184,7 +190,6 @@ export class SceneManager {
 	getRenderer() {
 		return this.renderer;
 	}
-
 
 	getFloorLevel() {
 		return this.floorLevel;
