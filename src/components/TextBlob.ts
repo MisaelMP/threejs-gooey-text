@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
-import { ShaderMaterialFactory } from './ShaderMaterial';
 import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { GooeyText } from '../GooeyText';
 import { Font } from 'three/examples/jsm/loaders/FontLoader.js';
@@ -32,7 +31,7 @@ export class TextBlob {
 			clearcoatRoughness: 0.02,
 			reflectivity: 1.0,
 			envMap: envMap,
-			envMapIntensity: 3.5, // ✅ Stronger reflections
+			envMapIntensity: 3.5, //  Stronger reflections
 		});
 
 		const wordGeometry = new TextGeometry(text, {
@@ -49,31 +48,31 @@ export class TextBlob {
 		const wordMesh = new THREE.Mesh(wordGeometry, material);
 		wordMesh.castShadow = true;
 
-		// ✅ Center text properly
+		//  Center text properly
 		const textWidth = wordGeometry.boundingBox?.max.x ?? 0;
 		wordMesh.position.set(-textWidth / 2, 10, 0);
 
-		// ✅ Correct reference to `sceneManager`
-		const floorLevel = parent.sceneManager.getFloorLevel(); // 🔥 Corrected!
+		//  Correct reference to `sceneManager`
+		const floorLevel = parent.sceneManager.getFloorLevel(); //  Corrected!
 
-		// ✅ Place above the floor INITIALLY but allow physics to move it after
+		//  Place above the floor INITIALLY but allow physics to move it after
 		const body = new CANNON.Body({
 			mass: 1,
 			shape: new CANNON.Box(new CANNON.Vec3(textWidth / 2, 1.5, 1)),
 
-			// ✅ **Set initial position but allow gravity to take over**
+			//   Set initial position but allow gravity to take over 
 			position: new CANNON.Vec3(
 				wordMesh.position.x,
-				floorLevel + 5, // ✅ Start slightly above the floor
+				floorLevel + 5, //  Start slightly above the floor
 				0
 			),
 
 			material: new CANNON.Material({ restitution: parent.bounceSpeed }),
 		});
 
-		// 🔥 **Fix: Ensure gravity works properly**
-		body.velocity.set(0, -5, 0); // ✅ Starts falling
-		setTimeout(() => (body.allowSleep = true), 1000); // ✅ Prevents it from staying in the air
+		// Ensure gravity works properly 
+		body.velocity.set(0, -5, 0); //  Starts falling
+		setTimeout(() => (body.allowSleep = true), 1000); //  Prevents it from staying in the air
 
 		body.linearDamping = 0.3;
 		body.angularDamping = 0.3;

@@ -5,7 +5,6 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { TextBlob } from './TextBlob';
 import { GooeyText } from '../GooeyText';
 import { GUIController } from './GUIController';
-import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js';
 
 export class SceneManager {
 	public parent: GooeyText;
@@ -38,7 +37,7 @@ export class SceneManager {
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-		// ✅ Initialize physics
+		//  Initialize physics
 		this.initPhysics();
 	}
 
@@ -78,7 +77,7 @@ export class SceneManager {
 		const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
 		this.scene.add(ambientLight);
 
-		// ✅ **Directional light for strong shadows under each letter**
+		//   Directional light for strong shadows under each letter 
 		const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
 		directionalLight.position.set(0, 50, 10);
 		directionalLight.castShadow = true;
@@ -92,7 +91,7 @@ export class SceneManager {
 		directionalLight.shadow.camera.bottom = -50;
 		this.scene.add(directionalLight);
 
-		// ✅ **Each letter now casts its own shadow**
+		//   Each letter now casts its own shadow 
 		this.pointLight = new THREE.PointLight(0xffffff, 2);
 		this.pointLight.position.set(0, 30, 10);
 		this.pointLight.castShadow = true;
@@ -154,7 +153,7 @@ export class SceneManager {
 	updateGooeyness(value: number) {
 		this.textBlobs.forEach(({ mesh }) => {
 			if (mesh.material instanceof THREE.ShaderMaterial) {
-				mesh.material.uniforms.u_gooeyEffect.value = value; // ✅ Update gooeyness effect in shader
+				mesh.material.uniforms.u_gooeyEffect.value = value; //  Update gooeyness effect in shader
 			}
 		});
 	}
@@ -178,16 +177,16 @@ export class SceneManager {
 		});
 	}
 
-	// ✅ Now includes all missing functions
+	//  Now includes all missing functions
 	getGooeyness() {
-		return this.parent.gooeyness; // ✅ Get gooeyness from GUI
+		return this.parent.gooeyness; //  Get gooeyness from GUI
 	}
 
 	getBounciness() {
-		return this.parent.bounceSpeed; // ✅ Get bounciness from GUI
+		return this.parent.bounceSpeed; //  Get bounciness from GUI
 	}
 	getFloorLevel() {
-		return this.floorLevel; // ✅ Returns the floor level for physics
+		return this.floorLevel; //  Returns the floor level for physics
 	}
 
 	getPhysicsWorld() {
