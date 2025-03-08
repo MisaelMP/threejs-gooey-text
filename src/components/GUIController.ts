@@ -28,14 +28,12 @@ export class GUIController {
 			.name('Animate')
 			.onChange(() => this.forceUpdate());
 
-		//  Update bounce effect dynamically
 		GUIController.gui!.add(this.parent, 'bounceSpeed', 0, 5, 0.1)
 			.name('Bounce Speed')
 			.onChange((value) => {
 				this.parent.setBounciness(value);
 			});
 
-		//  Update gooeyness dynamically
 		GUIController.gui!.add(this.parent, 'gooeyness', 0, 1, 0.05)
 			.name('Gooeyness')
 			.onChange(() => {

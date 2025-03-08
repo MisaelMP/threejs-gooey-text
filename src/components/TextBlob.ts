@@ -31,7 +31,7 @@ export class TextBlob {
 			clearcoatRoughness: 0.02,
 			reflectivity: 1.0,
 			envMap: envMap,
-			envMapIntensity: 3.5, //  Stronger reflections
+			envMapIntensity: 3.5,
 		});
 
 		const wordGeometry = new TextGeometry(text, {
@@ -52,8 +52,7 @@ export class TextBlob {
 		const textWidth = wordGeometry.boundingBox?.max.x ?? 0;
 		wordMesh.position.set(-textWidth / 2, 10, 0);
 
-		//  Correct reference to `sceneManager`
-		const floorLevel = parent.sceneManager.getFloorLevel(); //  Corrected!
+		const floorLevel = parent.sceneManager.getFloorLevel(); 
 
 		//  Place above the floor INITIALLY but allow physics to move it after
 		const body = new CANNON.Body({
