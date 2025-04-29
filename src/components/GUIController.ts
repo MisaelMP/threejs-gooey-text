@@ -29,7 +29,7 @@ export class GUIController {
 			.onChange(() => this.forceUpdate());
 
 		GUIController.gui!.add(this.parent, 'bounceSpeed', 0, 5, 0.1)
-			.name('Bounce Speed')
+			.name('Bounce Elasticity')
 			.onChange((value) => {
 				this.parent.setBounciness(value);
 			});
